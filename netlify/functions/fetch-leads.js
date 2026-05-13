@@ -179,7 +179,7 @@ exports.handler = async function(event) {
 
     const params = new URLSearchParams({
       where:              where,
-      outFields:          'AIN,SitusFullAddress,SitusCity,SitusZIP,UseCode,UseType,YearBuilt1,EffectiveYear1,Units1,Bedrooms1,Bathrooms1,SQFTmain1,TaxRateCity',
+      outFields:          'AIN,SitusFullAddress,SitusCity,SitusZIP,UseCode,UseType,YearBuilt1,EffectiveYear1,Units1,Bedrooms1,Bathrooms1,SQFTmain1,DesignType1,DesignType2,YearBuilt2,SQFTmain2,Units2,DesignType3,SQFTmain3,Units3,LotSizeSquareFeet,TaxRateCity,Roll_LandValue,Roll_ImpValue',
       returnGeometry:     'false',
       resultRecordCount:  '300',
       f:                  'json',
@@ -222,6 +222,11 @@ exports.handler = async function(event) {
   const leads    = [];
   const usedAINs = new Set();
 
+  // ADU FEASIBILITY FILTER
+  // Filter out properties that already have an ADU, no backyard, or insufficient lot size
+  const ADU_DESIGN_CODES = ['ADU','GST','GHS','REC','OFF']; // ADU, Guest house, Granny flat, Rec room, Office (already converted)
+  let rejectedReasons = { existingADU:0, smallLot:0, multiUnit:0, smallBackyard:0, vacantLot:0, tooNew:0, oldEnough:0 };
+
   for(const r of allRecords) {
     if(leads.length >= count) break;
     const ain = r.AIN || (r.SitusFullAddress + r.SitusZIP);
@@ -229,18 +234,63 @@ exports.handler = async function(event) {
     usedAINs.add(ain);
 
     const built = parseInt(r.YearBuilt1) || 0;
-    if(!built || built < 1900) continue;
+    if(!built || built < 1900) { rejectedReasons.vacantLot++; continue; }
 
     const effYear    = parseInt(r.EffectiveYear1) || (built + 5);
     const yearsOwned = Math.max(1, currentYear - effYear);
-    if(yearsOwned < minYears) continue;
+    if(yearsOwned < minYears) { rejectedReasons.tooNew++; continue; }
 
     const sqft = parseInt(r.SQFTmain1) || 0;
-    if(sqft < 600) continue;
-    // Estimate lot size: typical LA SFR FAR is 0.30-0.40
-    // Smaller homes tend to sit on proportionally larger lots
-    const farRatio  = sqft < 1200 ? 0.28 : sqft < 1800 ? 0.32 : sqft < 2400 ? 0.36 : 0.40;
-    const lotSqft   = Math.max(4000, Math.round(sqft / farRatio));
+    if(sqft < 600) { rejectedReasons.vacantLot++; continue; }
+
+    // CRITICAL: Reject properties with multiple units (likely have ADU or duplex)
+    const units1 = parseInt(r.Units1) || 1;
+    const units2 = parseInt(r.Units2) || 0;
+    const units3 = parseInt(r.Units3) || 0;
+    const totalUnits = units1 + units2 + units3;
+    if(totalUnits > 1) { rejectedReasons.multiUnit++; continue; }
+
+    // CRITICAL: Reject if there's already a second structure (existing ADU/guest house)
+    const sqft2 = parseInt(r.SQFTmain2) || 0;
+    const sqft3 = parseInt(r.SQFTmain3) || 0;
+    const design2 = (r.DesignType2 || '').toUpperCase().trim();
+    const design3 = (r.DesignType3 || '').toUpperCase().trim();
+
+    // Any meaningful second structure means an ADU exists or no room for one
+    if(sqft2 > 200 || sqft3 > 200) { rejectedReasons.existingADU++; continue; }
+    if(ADU_DESIGN_CODES.includes(design2) || ADU_DESIGN_CODES.includes(design3)) {
+      rejectedReasons.existingADU++; continue;
+    }
+
+    // Use REAL lot size from county data when available
+    let lotSqft = parseInt(r.LotSizeSquareFeet) || 0;
+    if(!lotSqft) {
+      // Fall back to estimate only if county didn't provide
+      const farRatio = sqft < 1200 ? 0.28 : sqft < 1800 ? 0.32 : sqft < 2400 ? 0.36 : 0.40;
+      lotSqft = Math.round(sqft / farRatio);
+    }
+
+    // CRITICAL: Calculate available backyard space
+    // Total lot - main home footprint - typical front yard (25% of lot) - driveway (8%) = backyard
+    // Account for pool (estimated 600 sqft if pool likely based on home size and value)
+    const homeFootprint = sqft / Math.max(1, parseInt(r.Units1) > 0 ? 1 : 1); // Single story assumption baseline
+    const frontYardEst  = lotSqft * 0.25;
+    const drivewayEst   = lotSqft * 0.08;
+    const sideYardsEst  = lotSqft * 0.10;
+
+    // Pool detection heuristic: homes >$1M in pool-friendly ZIPs are 60%+ likely to have pools
+    const landVal = parseFloat(r.Roll_LandValue) || 0;
+    const impVal  = parseFloat(r.Roll_ImpValue) || 0;
+    const homeVal_est = (landVal + impVal) * 1.18;
+    const poolLikely  = homeVal_est > 900000 && yearsOwned < 35 ? 1 : 0;
+    const poolEst     = poolLikely * 650; // typical pool footprint with surround
+
+    const availableBackyard = Math.max(0, lotSqft - homeFootprint - frontYardEst - drivewayEst - sideYardsEst - poolEst);
+
+    // ADU minimums per LA County: needs ~600 sqft cleared + 4ft setbacks + access path
+    // Realistic minimum buildable backyard is 1200 sqft for a detached ADU
+    if(availableBackyard < 1200) { rejectedReasons.smallBackyard++; continue; }
+    if(lotSqft < 5000) { rejectedReasons.smallLot++; continue; }
 
     const zip   = (r.SitusZIP || r._bzip || '').toString().trim().slice(0, 5);
     const zd    = ZIP_DATA[zip] || { city: r.SitusCity || 'Los Angeles', medRent: 2200, transit: 60 };
@@ -278,14 +328,17 @@ exports.handler = async function(event) {
       hhIncome:  55000 + Math.floor(Math.random() * 45000),
       yearsOwned,
       lotSqft,
-      backyardSqft: Math.round(lotSqft * 0.40),
+      backyardSqft: Math.round(availableBackyard),
+      hasExistingADU: false,
+      poolDetected: poolLikely ? 'Possible' : 'No',
+      mainHomeSqft: sqft,
       neighborhoodRent: zd.medRent,
       transitScore:     zd.transit,
       recentPermits: 0,
       zoning: 'R1',
       aduType, aduSqft, estRent, buildCost,
       valueAdded: aduType.includes('2BR') ? 270000 : aduType.includes('1BD') ? 200000 : 170000,
-      propertyNote: 'Built ' + built + '. ' + (r.Bedrooms1||'?') + 'BR/' + (r.Bathrooms1||'?') + 'BA, ' + sqft.toLocaleString() + ' sqft. AIN: ' + (r.AIN || '—') + '.',
+      propertyNote: 'Built ' + built + '. ' + (r.Bedrooms1||'?') + 'BR/' + (r.Bathrooms1||'?') + 'BA · ' + sqft.toLocaleString() + ' sqft home on ' + lotSqft.toLocaleString() + ' sqft lot · ~' + Math.round(availableBackyard).toLocaleString() + ' sqft available backyard' + (poolLikely?' (possible pool deducted)':'') + '. AIN: ' + (r.AIN || '—') + '.',
       locationNote: city + ' — est. rent $' + zd.medRent.toLocaleString() + '/mo. Transit: ' + zd.transit + '.',
       feasibilityNote: grossYield + '% gross yield' + (lotSqft >= 7000 ? ' · Large lot ADU feasible' : '') + (yearsOwned >= 20 ? ' · Long-term owner' : ''),
       proposed:  false,
@@ -307,6 +360,7 @@ exports.handler = async function(event) {
       ok:      true,
       count:   leads.length,
       queried: totalQueried,
+      filtered: rejectedReasons,
       leads,
     }),
   };
