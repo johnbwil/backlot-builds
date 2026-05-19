@@ -1,0 +1,750 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>BackLot Builds — Your Project</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,500;0,600;0,700;1,500;1,600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<style>
+:root{
+  --navy:#0F2B4A; --navy-mid:#1A3E66; --navy-lt:#F0F5FA;
+  --teal:#1A7A6E; --teal-mid:#1F8E80; --teal-lt:#E8F4F2;
+  --green:#2E7D5B; --green-lt:#E6F2EC;
+  --amber:#C67817; --amber-lt:#FBEFE0;
+  --red:#C5442E; --red-lt:#FBEAE6;
+  --sky:#5B7FA8; --sky-lt:#EAF1F8;
+  --white:#FFFFFF; --off:#F8FAFC;
+  --border:#E5E9EE; --text:#1A2B3D; --text-mid:#445566; --text-lt:#8A98A8;
+  --shadow:rgba(15,43,74,.06);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{background:var(--off);color:var(--text);font-family:'Outfit',sans-serif;-webkit-font-smoothing:antialiased;}
+button{font-family:inherit;}
+input,textarea{font-family:inherit;font-size:.88rem;color:var(--text);padding:.65rem .85rem;border:1.5px solid var(--border);border-radius:8px;background:var(--white);outline:none;transition:border .15s;width:100%;}
+input:focus,textarea:focus{border-color:var(--teal);}
+label{display:block;font-size:.68rem;font-weight:700;color:var(--text-mid);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.42rem;}
+
+/* HERO */
+.hero{background:linear-gradient(135deg,var(--navy) 0%,#13355A 100%);color:#fff;padding:1.2rem 0;}
+.hero-inner{max-width:1100px;margin:0 auto;padding:0 2rem;display:flex;align-items:center;justify-content:space-between;gap:2rem;}
+.hero-brand{display:flex;align-items:center;gap:.85rem;}
+.hero-mark{width:40px;height:40px;background:var(--teal);border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-weight:700;color:#fff;font-size:1rem;}
+.hero-name{font-family:'Fraunces',serif;font-size:1.1rem;font-weight:700;}
+.hero-sub{font-size:.68rem;color:rgba(255,255,255,.55);letter-spacing:.12em;text-transform:uppercase;margin-top:.05rem;}
+.btn-outline{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,.3);padding:.55rem 1.1rem;border-radius:8px;font-size:.76rem;font-weight:500;cursor:pointer;}
+.btn-outline:hover{border-color:#fff;}
+
+/* PROJECT HEADER */
+.proj-header{background:linear-gradient(180deg,#13355A 0%,var(--navy) 100%);color:#fff;padding:3rem 0 5rem;position:relative;overflow:hidden;}
+.proj-header::after{content:'';position:absolute;bottom:-50px;left:0;right:0;height:100px;background:var(--off);border-radius:50% 50% 0 0 / 100% 100% 0 0;}
+.proj-header-inner{max-width:1100px;margin:0 auto;padding:0 2rem;position:relative;z-index:2;}
+.welcome{font-size:.72rem;color:#7EB8AF;letter-spacing:.18em;text-transform:uppercase;font-weight:700;margin-bottom:.7rem;}
+.proj-title{font-family:'Fraunces',serif;font-size:clamp(1.8rem,3.4vw,2.6rem);font-weight:700;line-height:1.1;margin-bottom:.6rem;}
+.proj-title em{color:#7EB8AF;font-style:italic;}
+.proj-addr{font-size:1rem;color:rgba(255,255,255,.78);}
+
+/* MAIN */
+.main{max-width:1100px;margin:-3rem auto 0;padding:0 2rem 3rem;position:relative;z-index:3;}
+
+/* TABS */
+.tab-nav{display:flex;gap:.3rem;background:var(--white);border:1px solid var(--border);border-radius:11px;padding:.35rem;margin-bottom:1.75rem;box-shadow:0 4px 16px var(--shadow);}
+.tab-btn{flex:1;background:transparent;border:none;padding:.78rem .8rem;border-radius:8px;font-size:.8rem;font-weight:600;color:var(--text-mid);cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:.4rem;}
+.tab-btn:hover{color:var(--navy);}
+.tab-btn.active{background:var(--navy);color:#fff;box-shadow:0 4px 12px rgba(15,43,74,.18);}
+.tab-content{display:none;animation:fade .25s ease;}
+.tab-content.active{display:block;}
+@keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+/* PANELS */
+.panel{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:1.85rem;margin-bottom:1.2rem;box-shadow:0 2px 8px var(--shadow);}
+.panel-hd{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.5rem;gap:1rem;flex-wrap:wrap;}
+.panel-title{font-family:'Fraunces',serif;font-size:1.2rem;font-weight:700;color:var(--navy);}
+.panel-sub{font-size:.8rem;color:var(--text-lt);margin-top:.25rem;}
+.panel-eye{font-size:.58rem;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--teal);margin-bottom:.3rem;}
+
+/* STATS */
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem;}
+.stat-card{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:1.2rem 1.4rem;position:relative;overflow:hidden;box-shadow:0 2px 8px var(--shadow);}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--teal);}
+.stat-card.c-amber::before{background:var(--amber);}
+.stat-card.c-green::before{background:var(--green);}
+.stat-card.c-navy::before{background:var(--navy);}
+.stat-label{font-size:.6rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text-lt);margin-bottom:.4rem;}
+.stat-val{font-family:'Fraunces',serif;font-size:1.75rem;font-weight:700;color:var(--navy);line-height:1.1;}
+.stat-val.teal{color:var(--teal);}
+.stat-val.amber{color:var(--amber);}
+.stat-val.green{color:var(--green);}
+.stat-sub{font-size:.7rem;color:var(--text-mid);margin-top:.3rem;}
+
+/* TIMELINE / MILESTONES */
+.timeline{position:relative;padding-left:2rem;}
+.timeline::before{content:'';position:absolute;left:11px;top:8px;bottom:8px;width:2px;background:var(--border);}
+.tl-step{position:relative;padding:.85rem 0 .85rem 1.5rem;}
+.tl-step::before{content:'';position:absolute;left:-2rem;top:1.05rem;width:24px;height:24px;border-radius:50%;background:var(--white);border:2px solid var(--border);}
+.tl-step.done::before{background:var(--teal);border-color:var(--teal);content:'✓';color:#fff;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;line-height:1;}
+.tl-step.active::before{background:var(--amber);border-color:var(--amber);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.55;}}
+.tl-title{font-family:'Fraunces',serif;font-size:1rem;font-weight:700;color:var(--navy);margin-bottom:.2rem;}
+.tl-title.done{color:var(--teal);}
+.tl-title.active{color:var(--amber);}
+.tl-date{font-size:.72rem;color:var(--text-lt);font-weight:500;}
+.tl-desc{font-size:.82rem;color:var(--text-mid);margin-top:.3rem;line-height:1.5;}
+
+/* PAYMENTS */
+.payment-row{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem 0;border-bottom:1px solid var(--off);}
+.payment-row:last-child{border-bottom:none;}
+.pay-info{flex:1;}
+.pay-label{font-family:'Fraunces',serif;font-size:.92rem;font-weight:700;color:var(--navy);margin-bottom:.15rem;}
+.pay-sub{font-size:.74rem;color:var(--text-lt);}
+.pay-amt{font-family:'Fraunces',serif;font-size:1.15rem;font-weight:700;color:var(--navy);min-width:90px;text-align:right;}
+.pay-status{padding:.32rem .85rem;border-radius:5px;font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;display:inline-block;white-space:nowrap;}
+.pay-paid{background:var(--green-lt);color:var(--green);}
+.pay-due{background:var(--amber-lt);color:var(--amber);}
+.pay-upcoming{background:var(--off);color:var(--text-lt);}
+
+/* DOCS / PHOTOS */
+.doc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:.85rem;}
+.doc-card{background:var(--off);border:1px solid var(--border);border-radius:10px;padding:1rem;text-align:center;transition:all .15s;cursor:pointer;text-decoration:none;color:inherit;display:block;}
+.doc-card:hover{border-color:var(--teal);transform:translateY(-1px);box-shadow:0 4px 12px var(--shadow);}
+.doc-icon{font-size:1.8rem;margin-bottom:.4rem;}
+.doc-name{font-size:.82rem;font-weight:600;color:var(--navy);margin-bottom:.2rem;}
+.doc-meta{font-size:.7rem;color:var(--text-lt);}
+
+/* MESSAGES */
+.msg-thread{max-height:420px;overflow-y:auto;padding:.5rem 0;}
+.msg{padding:.85rem 1.1rem;border-radius:10px;margin-bottom:.75rem;max-width:80%;}
+.msg-them{background:var(--off);border:1px solid var(--border);}
+.msg-me{background:var(--navy);color:#fff;margin-left:auto;}
+.msg-from{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;opacity:.7;margin-bottom:.25rem;}
+.msg-body{font-size:.85rem;line-height:1.5;}
+.msg-time{font-size:.65rem;opacity:.6;margin-top:.4rem;}
+.msg-form{display:flex;gap:.6rem;margin-top:1rem;}
+.msg-form textarea{flex:1;min-height:60px;resize:vertical;}
+.msg-form button{background:var(--teal);color:#fff;border:none;padding:.85rem 1.4rem;border-radius:8px;font-size:.85rem;font-weight:700;cursor:pointer;align-self:flex-end;}
+
+/* EMPTY */
+.empty{padding:3rem 1rem;text-align:center;color:var(--text-lt);}
+.empty-icon{font-size:2.2rem;margin-bottom:.7rem;opacity:.5;}
+.empty-title{font-family:'Fraunces',serif;font-size:1.05rem;color:var(--text-mid);font-weight:600;margin-bottom:.4rem;}
+.empty-sub{font-size:.8rem;}
+
+/* LOGIN */
+.login-overlay{position:fixed;inset:0;background:linear-gradient(135deg,var(--navy) 0%,#13355A 100%);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1.5rem;}
+.login-card{background:#fff;border-radius:18px;padding:2.5rem;max-width:440px;width:100%;box-shadow:0 30px 80px rgba(0,0,0,.4);}
+.login-brand{display:flex;align-items:center;gap:.65rem;margin-bottom:1.6rem;justify-content:center;}
+.login-mark{width:38px;height:38px;background:var(--teal);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-weight:700;color:#fff;}
+.login-name{font-family:'Fraunces',serif;font-size:1.1rem;font-weight:700;color:var(--navy);}
+.login-title{font-family:'Fraunces',serif;font-size:1.55rem;font-weight:700;color:var(--navy);text-align:center;margin-bottom:.4rem;}
+.login-title em{color:var(--teal);font-style:italic;}
+.login-sub{font-size:.82rem;color:var(--text-mid);text-align:center;margin-bottom:1.65rem;line-height:1.5;}
+.login-form{display:flex;flex-direction:column;gap:.95rem;}
+.login-btn{background:var(--teal);color:#fff;border:none;padding:.95rem;border-radius:9px;font-size:.95rem;font-weight:700;cursor:pointer;transition:all .15s;margin-top:.4rem;}
+.login-btn:hover{background:var(--teal-mid);}
+
+/* TOAST */
+.toast{position:fixed;top:1.2rem;right:1.2rem;background:var(--navy);color:#fff;padding:.8rem 1.2rem;border-radius:9px;font-size:.85rem;z-index:1500;box-shadow:0 10px 30px rgba(15,43,74,.4);}
+.toast.success{background:var(--green);}
+.toast.error{background:var(--red);}
+
+@media(max-width:760px){
+  .stat-row{grid-template-columns:1fr;}
+  .tab-btn{font-size:.74rem;padding:.7rem .4rem;}
+  .tab-btn .full{display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-overlay" id="login-overlay">
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="login-mark">BB</div>
+      <div class="login-name">BackLot Builds</div>
+    </div>
+    <div class="login-title">Your <em>Project</em></div>
+    <div class="login-sub">Welcome, homeowner. Sign in to track your ADU project, view documents, and message your project manager.</div>
+    <div class="login-form">
+      <div>
+        <label>Email</label>
+        <input id="login-email" type="email" placeholder="your@email.com" autofocus />
+      </div>
+      <div>
+        <label>Password</label>
+        <input id="login-pw" type="password" placeholder="••••••••" />
+      </div>
+      <div id="login-err" style="display:none;background:#FBEAE6;color:#C5442E;padding:.65rem .85rem;border-radius:6px;font-size:.78rem;font-weight:500;text-align:center;line-height:1.4;"></div>
+      <button class="login-btn" id="login-btn" onclick="doLogin()">Sign In →</button>
+      <div style="text-align:center;margin-top:.4rem;">
+        <a href="#" onclick="forgotPassword();return false;" style="font-size:.75rem;color:var(--teal);font-weight:600;text-decoration:none;">Forgot password?</a>
+      </div>
+      <div style="text-align:center;margin-top:1rem;padding-top:1rem;border-top:1px solid var(--off);font-size:.74rem;color:var(--text-lt);line-height:1.5;">
+        Don't have an account yet? Your project manager at BackLot will invite you when your ADU project starts.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-brand">
+      <div class="hero-mark">BB</div>
+      <div>
+        <div class="hero-name">BackLot Builds</div>
+        <div class="hero-sub">Homeowner Portal</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:.7rem;">
+      <span style="font-size:.78rem;color:rgba(255,255,255,.7);" id="hi-name">Welcome</span>
+      <button class="btn-outline" onclick="logout()">Sign Out</button>
+    </div>
+  </div>
+</div>
+
+<!-- PROJECT HEADER -->
+<div class="proj-header">
+  <div class="proj-header-inner">
+    <div class="welcome">Your Project</div>
+    <h1 class="proj-title" id="proj-title">Loading your project…</h1>
+    <div class="proj-addr" id="proj-addr"></div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="switchTab('overview',this)">📊 <span class="full">Overview</span></button>
+    <button class="tab-btn" onclick="switchTab('timeline',this)">📅 <span class="full">Timeline</span></button>
+    <button class="tab-btn" onclick="switchTab('payments',this)">💳 <span class="full">Payments</span></button>
+    <button class="tab-btn" onclick="switchTab('documents',this)">📄 <span class="full">Documents</span></button>
+    <button class="tab-btn" onclick="switchTab('messages',this)">💬 <span class="full">Messages</span></button>
+  </div>
+
+  <!-- OVERVIEW -->
+  <div class="tab-content active" id="tab-overview">
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="stat-label">Current Stage</div>
+        <div class="stat-val teal" id="ov-stage">—</div>
+        <div class="stat-sub" id="ov-stage-sub">Loading…</div>
+      </div>
+      <div class="stat-card c-amber">
+        <div class="stat-label">Estimated Completion</div>
+        <div class="stat-val amber" id="ov-completion">—</div>
+        <div class="stat-sub" id="ov-completion-sub">Target date</div>
+      </div>
+      <div class="stat-card c-navy">
+        <div class="stat-label">Investment to Date</div>
+        <div class="stat-val" id="ov-invested">$0</div>
+        <div class="stat-sub" id="ov-invested-sub">Paid of total</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-hd">
+        <div>
+          <div class="panel-eye">Project Summary</div>
+          <div class="panel-title">Your ADU at a Glance</div>
+        </div>
+      </div>
+      <div id="proj-summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;">
+        <!-- Filled by JS -->
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-hd">
+        <div>
+          <div class="panel-eye">What's Next</div>
+          <div class="panel-title">Upcoming Milestone</div>
+        </div>
+      </div>
+      <div id="next-milestone"></div>
+    </div>
+  </div>
+
+  <!-- TIMELINE -->
+  <div class="tab-content" id="tab-timeline">
+    <div class="panel">
+      <div class="panel-hd">
+        <div>
+          <div class="panel-eye">Build Progress</div>
+          <div class="panel-title">Your Project Timeline</div>
+          <div class="panel-sub">Track every milestone from design to keys in hand</div>
+        </div>
+      </div>
+      <div class="timeline" id="full-timeline"></div>
+    </div>
+  </div>
+
+  <!-- PAYMENTS -->
+  <div class="tab-content" id="tab-payments">
+    <div class="panel">
+      <div class="panel-hd">
+        <div>
+          <div class="panel-eye">Payment Schedule</div>
+          <div class="panel-title">Your Investment Plan</div>
+          <div class="panel-sub">4 milestone-based payments totaling $30,000 management fee</div>
+        </div>
+      </div>
+      <div id="payment-list"></div>
+
+      <div style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--off);background:var(--teal-lt);border-radius:8px;padding:1.1rem;">
+        <div style="font-size:.74rem;color:var(--teal);font-weight:700;margin-bottom:.3rem;">💡 Construction costs are separate</div>
+        <div style="font-size:.8rem;color:var(--text-mid);line-height:1.55;">
+          The $30,000 above covers BackLot Builds' project management, design coordination, permit handling, and contractor oversight. Construction materials and labor are billed separately by our contracting partners according to your build agreement.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DOCUMENTS -->
+  <div class="tab-content" id="tab-documents">
+    <div class="panel">
+      <div class="panel-hd">
+        <div>
+          <div class="panel-eye">Project Files</div>
+          <div class="panel-title">Documents & Contracts</div>
+          <div class="panel-sub">All project paperwork in one place</div>
+        </div>
+      </div>
+      <div id="docs-list"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-hd">
+        <div>
+          <div class="panel-eye">Build Progress</div>
+          <div class="panel-title">Photos from the Site</div>
+        </div>
+      </div>
+      <div id="photos-list"></div>
+    </div>
+  </div>
+
+  <!-- MESSAGES -->
+  <div class="tab-content" id="tab-messages">
+    <div class="panel">
+      <div class="panel-hd">
+        <div>
+          <div class="panel-eye">Direct Line</div>
+          <div class="panel-title">Message Your Project Manager</div>
+          <div class="panel-sub">Questions, concerns, or just checking in? We're here.</div>
+        </div>
+      </div>
+      <div class="msg-thread" id="msg-thread"></div>
+      <div class="msg-form">
+        <textarea id="msg-input" placeholder="Type your message…"></textarea>
+        <button onclick="sendMessage()">Send →</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+// BACKLOT BUILDS — HOMEOWNER PORTAL
+// Strict privacy: each homeowner sees ONLY their own project
+// All data scoped by Firebase Authentication UID
+// ══════════════════════════════════════════════════════════════════
+
+const FB_CONFIG = {
+  apiKey: "AIzaSyAYRD17lacWzD-WelmoiRPVZiECLnPkbjk",
+  authDomain: "backlot-builds-54cc7.firebaseapp.com",
+  databaseURL: "https://backlot-builds-54cc7-default-rtdb.firebaseio.com",
+  projectId: "backlot-builds-54cc7",
+  storageBucket: "backlot-builds-54cc7.firebasestorage.app",
+  messagingSenderId: "861411627820",
+  appId: "1:861411627820:web:c50bccca8a6cb6c75c8a0a"
+};
+
+if(!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
+const _auth = firebase.auth();
+const _db = firebase.database();
+
+let _homeowner = null;
+let _project = null;
+
+function fmtD(n) { return '$' + (Math.round(n||0)).toLocaleString(); }
+function fmtDate(d) {
+  if(!d) return '—';
+  try { return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
+  catch(e){ return '—'; }
+}
+
+function showToast(msg, type){
+  const t = document.createElement('div');
+  t.className = 'toast' + (type ? ' ' + type : '');
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; setTimeout(() => t.remove(), 300); }, 3500);
+}
+
+function switchTab(tabName, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + tabName).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── AUTH ──
+async function doLogin(){
+  const email = document.getElementById('login-email').value.trim();
+  const pw = document.getElementById('login-pw').value;
+  const err = document.getElementById('login-err');
+  const btn = document.getElementById('login-btn');
+
+  if(!email || !pw) {
+    err.textContent = 'Please enter both email and password.';
+    err.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  try {
+    await _auth.signInWithEmailAndPassword(email, pw);
+  } catch(error) {
+    let msg = error.message;
+    if(error.code === 'auth/wrong-password') msg = 'Incorrect password.';
+    else if(error.code === 'auth/user-not-found') msg = 'No account found with that email. Contact your project manager for an invitation.';
+    else if(error.code === 'auth/invalid-email') msg = 'That doesn\\'t look like a valid email.';
+    err.textContent = msg;
+    err.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Sign In →';
+  }
+}
+
+async function forgotPassword(){
+  const email = document.getElementById('login-email').value.trim();
+  const err = document.getElementById('login-err');
+  if(!email) {
+    err.textContent = 'Enter your email above, then click Forgot password.';
+    err.style.display = 'block';
+    return;
+  }
+  try {
+    await _auth.sendPasswordResetEmail(email);
+    err.style.background = 'var(--green-lt)';
+    err.style.color = 'var(--green)';
+    err.textContent = '✓ Password reset email sent to ' + email + '.';
+    err.style.display = 'block';
+  } catch(error) {
+    err.textContent = 'Could not send reset email: ' + error.message;
+    err.style.display = 'block';
+  }
+}
+
+async function logout(){
+  if(!confirm('Sign out?')) return;
+  await _auth.signOut();
+  location.reload();
+}
+
+// ── LOAD PROJECT ──
+_auth.onAuthStateChanged(async user => {
+  if(!user) {
+    document.getElementById('login-overlay').style.display = 'flex';
+    return;
+  }
+
+  try {
+    // Load homeowner profile
+    const profSnap = await _db.ref('backlot/homeowners/' + user.uid).once('value');
+    let profile = profSnap.val();
+
+    if(!profile) {
+      // No profile yet — show error (admin needs to invite them)
+      document.getElementById('login-err').textContent = 'Your account exists but no project is linked yet. Contact your project manager.';
+      document.getElementById('login-err').style.display = 'block';
+      document.getElementById('login-overlay').style.display = 'flex';
+      return;
+    }
+
+    _homeowner = profile;
+
+    // Load the project linked to this homeowner
+    if(!profile.projectId) {
+      document.getElementById('login-err').textContent = 'No project linked to your account. Contact your project manager.';
+      document.getElementById('login-err').style.display = 'block';
+      document.getElementById('login-overlay').style.display = 'flex';
+      return;
+    }
+
+    const projSnap = await _db.ref('backlot/homeowner_projects/' + profile.projectId).once('value');
+    _project = projSnap.val();
+
+    if(!_project) {
+      document.getElementById('login-err').textContent = 'Project record not found. Contact your project manager.';
+      document.getElementById('login-err').style.display = 'block';
+      document.getElementById('login-overlay').style.display = 'flex';
+      return;
+    }
+
+    document.getElementById('login-overlay').style.display = 'none';
+    document.getElementById('hi-name').textContent = 'Hi, ' + (profile.name || 'there').split(' ')[0];
+    renderProject();
+
+    // Real-time updates
+    _db.ref('backlot/homeowner_projects/' + profile.projectId).on('value', snap => {
+      const updated = snap.val();
+      if(updated) { _project = updated; renderProject(); }
+    });
+
+    // Real-time messages
+    _db.ref('backlot/homeowner_messages/' + profile.projectId).on('value', renderMessages);
+
+  } catch(err) {
+    console.error('Project load error:', err);
+    document.getElementById('login-err').textContent = 'Could not load project: ' + err.message;
+    document.getElementById('login-err').style.display = 'block';
+    document.getElementById('login-overlay').style.display = 'flex';
+  }
+});
+
+// ── RENDER ──
+function renderProject(){
+  if(!_project) return;
+
+  // Header
+  document.getElementById('proj-title').innerHTML = (_project.aduType || 'Your ADU') + ' Project';
+  document.getElementById('proj-addr').textContent = _project.address || '';
+
+  renderOverview();
+  renderTimeline();
+  renderPayments();
+  renderDocuments();
+  renderPhotos();
+}
+
+const STAGES = [
+  { key:'kickoff',     title:'Project Kickoff',        desc:'Welcome call, scope confirmed, contract signed.' },
+  { key:'design',      title:'Design Phase',           desc:'Architectural plans developed and refined with your input.' },
+  { key:'permits',     title:'Permit Submission',      desc:'Plans submitted to LA County for approval.' },
+  { key:'permitsApproved', title:'Permits Approved',  desc:'Building permits issued. Construction can begin.' },
+  { key:'foundation',  title:'Foundation & Framing',   desc:'Site prep, foundation pour, structural framing.' },
+  { key:'utilities',   title:'Utilities & Inspections',desc:'Plumbing, electrical, HVAC, and city inspections.' },
+  { key:'finishing',   title:'Interior Finishing',     desc:'Drywall, flooring, kitchen, bathroom, fixtures.' },
+  { key:'completion',  title:'Final Walkthrough',      desc:'Punch list complete, certificate of occupancy, keys in hand.' },
+];
+
+function renderOverview(){
+  const stages = _project.stages || {};
+  const stageHistory = STAGES.filter(s => stages[s.key]?.done);
+  const currentStage = STAGES.find(s => !stages[s.key]?.done) || STAGES[STAGES.length-1];
+
+  document.getElementById('ov-stage').textContent = currentStage.title;
+  document.getElementById('ov-stage-sub').textContent = currentStage.desc;
+
+  const targetDate = _project.targetCompletion || null;
+  document.getElementById('ov-completion').textContent = targetDate ? fmtDate(targetDate) : 'TBD';
+  document.getElementById('ov-completion-sub').textContent = stageHistory.length + ' of ' + STAGES.length + ' milestones complete';
+
+  // Payments paid
+  const payments = _project.payments || {};
+  const paid = Object.values(payments).filter(p => p.paid).reduce((s,p) => s + (p.amount||0), 0);
+  const total = Object.values(payments).reduce((s,p) => s + (p.amount||0), 0) || 30000;
+  document.getElementById('ov-invested').textContent = fmtD(paid);
+  document.getElementById('ov-invested-sub').textContent = 'of ' + fmtD(total) + ' total';
+
+  // Summary
+  const summary = document.getElementById('proj-summary');
+  summary.innerHTML = `
+    <div><div class="stat-label">ADU Type</div><div style="font-family:'Fraunces',serif;font-weight:700;color:var(--navy);font-size:1.02rem;margin-top:.2rem;">${_project.aduType || 'TBD'}</div></div>
+    <div><div class="stat-label">Square Footage</div><div style="font-family:'Fraunces',serif;font-weight:700;color:var(--navy);font-size:1.02rem;margin-top:.2rem;">${(_project.aduSqft||0).toLocaleString()} sqft</div></div>
+    <div><div class="stat-label">Project Manager</div><div style="font-family:'Fraunces',serif;font-weight:700;color:var(--navy);font-size:1.02rem;margin-top:.2rem;">${_project.projectManager || 'BackLot Team'}</div></div>
+    <div><div class="stat-label">Start Date</div><div style="font-family:'Fraunces',serif;font-weight:700;color:var(--navy);font-size:1.02rem;margin-top:.2rem;">${fmtDate(_project.startDate)}</div></div>
+  `;
+
+  // Next milestone
+  const next = document.getElementById('next-milestone');
+  if(currentStage && currentStage.key !== 'completion') {
+    next.innerHTML = `
+      <div style="display:flex;align-items:center;gap:1.1rem;padding:.5rem 0;">
+        <div style="width:48px;height:48px;background:var(--amber-lt);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0;">⏳</div>
+        <div style="flex:1;">
+          <div style="font-family:'Fraunces',serif;font-size:1.05rem;font-weight:700;color:var(--navy);margin-bottom:.2rem;">${currentStage.title}</div>
+          <div style="font-size:.82rem;color:var(--text-mid);line-height:1.5;">${currentStage.desc}</div>
+        </div>
+      </div>
+    `;
+  } else {
+    next.innerHTML = `
+      <div style="text-align:center;padding:1.5rem 1rem;">
+        <div style="font-size:2.2rem;margin-bottom:.5rem;">🎉</div>
+        <div style="font-family:'Fraunces',serif;font-size:1.1rem;font-weight:700;color:var(--green);">Your project is complete!</div>
+        <div style="font-size:.84rem;color:var(--text-mid);margin-top:.4rem;">Welcome to ADU ownership.</div>
+      </div>
+    `;
+  }
+}
+
+function renderTimeline(){
+  const stages = _project.stages || {};
+  const firstNotDone = STAGES.findIndex(s => !stages[s.key]?.done);
+  const activeIdx = firstNotDone === -1 ? STAGES.length : firstNotDone;
+
+  const tl = document.getElementById('full-timeline');
+  tl.innerHTML = STAGES.map((s, i) => {
+    const done = stages[s.key]?.done;
+    const isActive = i === activeIdx;
+    const cls = done ? 'done' : isActive ? 'active' : '';
+    const titleCls = done ? 'done' : isActive ? 'active' : '';
+    const date = stages[s.key]?.date ? fmtDate(stages[s.key].date) : (isActive ? 'In progress' : 'Upcoming');
+
+    return `
+      <div class="tl-step ${cls}">
+        <div class="tl-title ${titleCls}">${s.title}</div>
+        <div class="tl-date">${date}</div>
+        <div class="tl-desc">${s.desc}</div>
+        ${stages[s.key]?.note ? '<div style="margin-top:.5rem;padding:.55rem .8rem;background:var(--off);border-left:2px solid var(--teal);border-radius:5px;font-size:.78rem;color:var(--text-mid);">' + stages[s.key].note + '</div>' : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+const PAYMENT_SCHEDULE = [
+  { key:'deposit',         label:'Project Deposit',           desc:'Due at contract signing — kicks off your project',           amount:5000,  triggerStage:'kickoff' },
+  { key:'designApproval',  label:'Design Phase Payment',      desc:'Due when architectural plans are approved by you',           amount:10000, triggerStage:'design' },
+  { key:'permitApproval',  label:'Construction Kickoff',      desc:'Due when permits are approved and construction starts',      amount:10000, triggerStage:'permitsApproved' },
+  { key:'completion',      label:'Final Payment',             desc:'Due upon project completion and final walkthrough',          amount:5000,  triggerStage:'completion' },
+];
+
+function renderPayments(){
+  const payments = _project.payments || {};
+  const stages = _project.stages || {};
+
+  document.getElementById('payment-list').innerHTML = PAYMENT_SCHEDULE.map(p => {
+    const status = payments[p.key] || {};
+    const triggerHit = stages[p.triggerStage]?.done;
+    let statusBadge, statusCls;
+
+    if(status.paid) {
+      statusBadge = '✓ Paid · ' + fmtDate(status.paidDate);
+      statusCls = 'pay-paid';
+    } else if(triggerHit) {
+      statusBadge = 'Due Now';
+      statusCls = 'pay-due';
+    } else {
+      statusBadge = 'Upcoming';
+      statusCls = 'pay-upcoming';
+    }
+
+    return `
+      <div class="payment-row">
+        <div class="pay-info">
+          <div class="pay-label">${p.label}</div>
+          <div class="pay-sub">${p.desc}</div>
+        </div>
+        <div class="pay-amt">${fmtD(p.amount)}</div>
+        <div class="pay-status ${statusCls}">${statusBadge}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderDocuments(){
+  const docs = _project.documents || [];
+  const list = document.getElementById('docs-list');
+  if(!docs.length) {
+    list.innerHTML = '<div class="empty"><div class="empty-icon">📄</div><div class="empty-title">No documents yet</div><div class="empty-sub">Contracts and plans will appear here as your project progresses.</div></div>';
+    return;
+  }
+  list.innerHTML = '<div class="doc-grid">' + docs.map(d => `
+    <a href="${d.url}" target="_blank" class="doc-card">
+      <div class="doc-icon">${d.icon || '📄'}</div>
+      <div class="doc-name">${d.name}</div>
+      <div class="doc-meta">${fmtDate(d.uploadedDate)}</div>
+    </a>
+  `).join('') + '</div>';
+}
+
+function renderPhotos(){
+  const photos = _project.photos || [];
+  const list = document.getElementById('photos-list');
+  if(!photos.length) {
+    list.innerHTML = '<div class="empty"><div class="empty-icon">📷</div><div class="empty-title">No photos yet</div><div class="empty-sub">Construction progress photos will appear here.</div></div>';
+    return;
+  }
+  list.innerHTML = '<div class="doc-grid" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr));">' + photos.map(p => `
+    <div class="doc-card" style="padding:0;overflow:hidden;">
+      <img src="${p.url}" alt="${p.caption||'Construction photo'}" style="width:100%;height:160px;object-fit:cover;display:block;" />
+      <div style="padding:.7rem .85rem;text-align:left;">
+        <div class="doc-name" style="font-size:.78rem;">${p.caption || 'Construction photo'}</div>
+        <div class="doc-meta">${fmtDate(p.date)}</div>
+      </div>
+    </div>
+  `).join('') + '</div>';
+}
+
+// ── MESSAGES ──
+function renderMessages(snap){
+  const data = snap.val() || {};
+  const msgs = Object.values(data).sort((a,b) => new Date(a.sentAt) - new Date(b.sentAt));
+  const thread = document.getElementById('msg-thread');
+
+  if(!msgs.length) {
+    thread.innerHTML = '<div class="empty"><div class="empty-icon">💬</div><div class="empty-title">No messages yet</div><div class="empty-sub">Send a message below to get in touch with your project manager.</div></div>';
+    return;
+  }
+
+  thread.innerHTML = msgs.map(m => {
+    const isMe = m.fromUid === _auth.currentUser?.uid;
+    return `
+      <div class="msg ${isMe?'msg-me':'msg-them'}">
+        <div class="msg-from">${isMe ? 'You' : (m.fromName || 'BackLot Team')}</div>
+        <div class="msg-body">${escapeHTML(m.body || '')}</div>
+        <div class="msg-time">${new Date(m.sentAt).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</div>
+      </div>
+    `;
+  }).join('');
+  thread.scrollTop = thread.scrollHeight;
+}
+
+function escapeHTML(s){
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+async function sendMessage(){
+  const input = document.getElementById('msg-input');
+  const body = input.value.trim();
+  if(!body) return;
+  if(!_homeowner?.projectId) { showToast('No project linked', 'error'); return; }
+
+  const msg = {
+    id: 'msg_' + Date.now(),
+    projectId: _homeowner.projectId,
+    fromUid: _auth.currentUser.uid,
+    fromName: _homeowner.name || 'Homeowner',
+    fromRole: 'homeowner',
+    body,
+    sentAt: new Date().toISOString(),
+  };
+
+  try {
+    await _db.ref('backlot/homeowner_messages/' + _homeowner.projectId + '/' + msg.id).set(msg);
+    input.value = '';
+  } catch(err) {
+    showToast('Failed to send: ' + err.message, 'error');
+  }
+}
+
+// ── INIT ──
+window.addEventListener('DOMContentLoaded', () => {
+  ['login-email','login-pw'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.addEventListener('keypress', e => { if(e.key==='Enter') doLogin(); });
+  });
+});
+</script>
+
+</body>
+</html>
